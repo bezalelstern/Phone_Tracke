@@ -85,11 +85,16 @@ class PhonRepository:
                 """
         with self.driver.session() as session:
             results = session.run(query)
-            return [
-                {"from_device": record["from_device"],
-                 "from_name": record["from_name"],
-                 "to_device": record["to_device"],
-                 "to_name": record["to_name"],
-                 "signal_strength": record["signal_strength"]}
-                for record in results
-            ]
+
+            return [dict(record) for record in results]
+
+    def get_connected_device(self, id):
+        query = """
+        MATCH (device:Device)-[:CONNECTED]->(connected:Device)
+        WHERE device.id = $id
+        RETURN COUNT(connected) AS connected_count
+        """
+        with self.driver.session() as session:
+            results = session.run(query, id = id)
+            record = results.single()
+            return record["connected_count"]

@@ -32,6 +32,7 @@ def phone_tracker():
         logging.error(f'Error in POST /api/v1/transaction: {str(e)}')
         return jsonify({'error': str(e)}), 500
 
+
 @phone_bp.route('/bluetooth_paths', methods=['GET'])
 def get_bluetooth_paths():
     try:
@@ -42,6 +43,7 @@ def get_bluetooth_paths():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @phone_bp.route('/signal_strength', methods=['GET'])
 def get_signal_strength():
     try:
@@ -49,6 +51,26 @@ def get_signal_strength():
         paths = repo.get_signal_strength()
 
         return jsonify({"paths": paths}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@phone_bp.route('/connected_device', methods=['GET'])
+def get_connected_device():
+    id = request.args.get('id', None)
+    if not id:
+        return jsonify({"error": "id required"}), 400
+
+    try:
+        repo = PhonRepository(current_app.driver)
+        devices = repo.get_connected_device(id)
+        return jsonify({"device id": id ,"connected_devices": devices}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+
+
 
