@@ -58,6 +58,7 @@ def get_signal_strength():
 @phone_bp.route('/connected_device', methods=['GET'])
 def get_connected_device():
     id = request.args.get('id', None)
+    cache_key = f'connected_device_{id}'
     if not id:
         return jsonify({"error": "id required"}), 400
 
@@ -70,7 +71,42 @@ def get_connected_device():
         return jsonify({"error": str(e)}), 500
 
 
+@phone_bp.route('/is_connected', methods=['GET'])
+def check_direct_connection():
+    from_device_id = request.args.get('from_device_id')
+    to_device_id = request.args.get('to_device_id')
 
+    if not from_device_id or not to_device_id:
+        return jsonify({"error": "from_device_id and to_device_id are required"}), 400
+
+    try:
+        repo = PhonRepository(current_app.driver)
+        connected = repo.is_connected(from_device_id, to_device_id)
+        return jsonify({
+            "from_device_id": from_device_id,
+            "to_device_id": to_device_id,
+            "connected": connected
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@phone_bp.route('/recent_connection', methods=['GET'])
+def get_recent_connection():
+    device_id = request.args.get('device_id')
+    if not device_id:
+        return jsonify({"error": "device_id required"}), 400
+
+    try:
+        repo = PhonRepository(current_app.driver)
+        connection = repo.get_recent_connection(device_id)
+        if connection:
+            return jsonify({"device_id": device_id, "recent_connection": connection}), 200
+        else:
+            return "no connection found for dis device", 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 

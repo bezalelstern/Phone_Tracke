@@ -47,10 +47,11 @@ class PhonRepository:
             return result.single()['phon_call_id']
 
 
+
     def get_bluetooth_paths(self, max_depth= 50):
         query = """
         MATCH path = (device1:Device)-[r:CONNECTED*2 ..%d]->(device2:Device)
-        WHERE ALL(rel IN relationships(path) WHERE rel.method = 'Bluetooth')
+        WHERE ALL(rel in relationships(path) WHERE rel.method = 'Bluetooth')
         RETURN 
             device1.id AS from_device,
             device1.name AS from_name,
@@ -58,7 +59,7 @@ class PhonRepository:
             device2.name AS to_name,
             relationships(path) AS calls,
             length(path) AS cycle_length
-        ORDER BY cycle_length DESC
+        ORDER BY cycle_length desc
         """ % max_depth
 
         with self.driver.session() as session:
@@ -71,17 +72,18 @@ class PhonRepository:
                  "cycle_length": record["cycle_length"],
                 "calls": [dict(call) for call in record["calls"] ]
                  }
-                for record in results
-            ]
+                for record in results]
+
+
 
     def get_signal_strength(self):
         query = """
                 MATCH (device1:Device)-[r:CONNECTED]->(device2:Device)
                 WHERE r.signal_strength_dbm > -60
-                RETURN device1.id AS from_device, device1.name AS from_name, 
-                       device2.id AS to_device, device2.name AS to_name, 
-                       r.signal_strength_dbm AS signal_strength
-                ORDER BY signal_strength DESC
+                RETURN device1.id AS from_device, device1.name as from_name, 
+                       device2.id AS to_device, device2.name as to_name, 
+                       r.signal_strength_dbm as signal_strength
+                order by signal_strength DESC
                 """
         with self.driver.session() as session:
             results = session.run(query)
@@ -92,9 +94,45 @@ class PhonRepository:
         query = """
         MATCH (device:Device)-[:CONNECTED]->(connected:Device)
         WHERE device.id = $id
-        RETURN COUNT(connected) AS connected_count
+        return count(connected) as connected_count
         """
         with self.driver.session() as session:
             results = session.run(query, id = id)
             record = results.single()
-            return record["connected_count"]
+
+            return record['connected_count']
+
+
+    def is_connected(self, from_device_id, to_device_id):
+        query = """
+                MATCH (device1:Device)-[r:CONNECTED]-(device2:Device)
+                WHERE device1.id = $from_device_id AND device2.id = $to_device_id
+                return count (r) as is_connected
+                """
+        with self.driver.session() as session:
+            result = session.run(query, from_device_id=from_device_id, to_device_id=to_device_id)
+            record = result.single()
+            return record["is_connected"] > 0
+
+
+    def get_recent_connection(self, device_id):
+        query = """
+                MATCH (device:Device)-[r:CONNECTED]->(other_device:Device)
+                WHERE device.id = $device_id
+                RETURN r.method AS method, 
+                       r.bluetooth_version AS bluetooth_version,
+                       r.signal_strength_dbm AS signal_strength,
+                       r.distance_meters AS distance,
+                       r.duration_seconds AS duration,
+                       r.timestamp AS timestamp,
+                       other_device.id AS connected_device_id,
+                       other_device.name AS connected_device_name
+                ORDER BY r.timestamp DESC
+                LIMIT 1
+                """
+        with self.driver.session() as session:
+            result = session.run(query, device_id=device_id)
+            if result:
+                return [dict(record) for record in result]
+            else:
+                return None
