@@ -6,14 +6,14 @@ redis_client = None
 
 def init_neo4j():
     neo4j_driver = GraphDatabase.driver(
-        "bolt://neo4j:7687",
+        "bolt://localhost:7687",
         auth=("neo4j", "password")
     )
     return neo4j_driver
 
 def init_redis():
     redis_client = redis.Redis(
-        host='redis',
+        host='localhost',
         port= 6379,
         decode_responses=True
     )
