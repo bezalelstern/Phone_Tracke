@@ -74,4 +74,22 @@ class PhonRepository:
                 for record in results
             ]
 
-        def get_signal_strength(self, max_depth= 50):
+    def get_signal_strength(self):
+        query = """
+                MATCH (device1:Device)-[r:CONNECTED]->(device2:Device)
+                WHERE r.signal_strength_dbm > -60
+                RETURN device1.id AS from_device, device1.name AS from_name, 
+                       device2.id AS to_device, device2.name AS to_name, 
+                       r.signal_strength_dbm AS signal_strength
+                ORDER BY signal_strength DESC
+                """
+        with self.driver.session() as session:
+            results = session.run(query)
+            return [
+                {"from_device": record["from_device"],
+                 "from_name": record["from_name"],
+                 "to_device": record["to_device"],
+                 "to_name": record["to_name"],
+                 "signal_strength": record["signal_strength"]}
+                for record in results
+            ]
